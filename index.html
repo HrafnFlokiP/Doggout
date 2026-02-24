@@ -1,21 +1,90 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Doggout</title>
+
     <link rel="stylesheet" href="st.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+
+    <!-- App-like typography: bold display + clean body text. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+
     <script src="js.js" defer></script>
 </head>
 <body>
-    <h1>Doggout</h1>
-    <div class="box">
-        <h2>last walk was at<h1>X</h1> for <h1>Y</h1> minutes</h2>
-        <h1>Did he poop: <h1>yes/no</h1></h1>
-    </div>
-    <button class="dogOut">I am taking the dog out</button>
-    
-    
+    <!-- Outer shell keeps a phone silhouette on desktop screens. -->
+    <div class="app-shell">
+        <div class="phone-frame">
+            <div class="phone-screen">
+                <header class="app-header">
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span id="walkState" class="state-pill">Ready</span>
+                    </div>
 
+                    <div class="brand-row">
+                        <img src="assets/mascot_logo.png" alt="Doggout mascot" class="logo">
+                        <div>
+                            <p class="overline">DOGGOUT</p>
+                            <h1>Walk Time</h1>
+                        </div>
+                    </div>
+                </header>
+
+                <main class="app-main">
+                    <section class="hero-card" aria-label="Walk action">
+                        <p class="hero-kicker">Today&apos;s mission</p>
+                        <h2>Take your dog outside</h2>
+                        <p class="hero-copy">Tap to start tracking this walk and potty break.</p>
+                        <button id="walkToggle" class="primary-btn" type="button">Start Walk</button>
+                    </section>
+
+                    <section class="stats-grid" aria-label="Walk stats">
+                        <article class="stat-card">
+                            <p class="label">Last walk</p>
+                            <p class="value">6:30 PM</p>
+                        </article>
+                        <article class="stat-card">
+                            <p class="label">Duration</p>
+                            <p class="value">24 min</p>
+                        </article>
+                        <article class="stat-card">
+                            <p class="label">Poop status</p>
+                            <p class="value">Yes</p>
+                        </article>
+                        <article class="stat-card">
+                            <p class="label">Mood</p>
+                            <p class="value">Happy</p>
+                        </article>
+                    </section>
+
+                    <section class="photo-reel" aria-label="Dog photos">
+                        <img src="assets/doggo_1.png" alt="Doggo portrait one">
+                        <img src="assets/doggo_2.png" alt="Doggo portrait two">
+                    </section>
+
+                    <section class="map-panel" aria-label="Live route map">
+                        <div class="panel-row">
+                            <h2>Live Route</h2>
+                            <span class="live-indicator">Live</span>
+                        </div>
+                        <div id="map"></div>
+                    </section>
+                </main>
+
+                <nav class="tab-bar" aria-label="Main app tabs">
+                    <button class="tab is-active" type="button">Walk</button>
+                    <button class="tab" type="button">History</button>
+                    <button class="tab" type="button">Profile</button>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </body>
 </html>
