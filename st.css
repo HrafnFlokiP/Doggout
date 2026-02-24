@@ -1,0 +1,331 @@
+﻿:root {
+    --ink: #142127;
+    --muted: #5a6a74;
+    --surface: #ffffff;
+    --surface-soft: #f6fafb;
+    --line: #dbe5ea;
+    --orange: #ef7f35;
+    --orange-deep: #d7631a;
+    --teal: #0f9a8b;
+    --teal-soft: #cdeee8;
+    --night: #111827;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 1.25rem;
+    color: var(--ink);
+    font-family: "Manrope", "Segoe UI", sans-serif;
+    background:
+        radial-gradient(circle at 12% 15%, #f8d9b2 0%, rgba(248, 217, 178, 0) 30%),
+        radial-gradient(circle at 90% 82%, #b8ece3 0%, rgba(184, 236, 227, 0) 28%),
+        linear-gradient(180deg, #f4f8fc 0%, #e8f2f5 100%);
+}
+
+/* Phone silhouette for desktop while keeping real app dimensions. */
+.app-shell {
+    width: min(420px, 100%);
+}
+
+.phone-frame {
+    background: linear-gradient(160deg, #1f2937 0%, #111827 100%);
+    border-radius: 38px;
+    padding: 10px;
+    box-shadow: 0 28px 55px rgba(12, 23, 37, 0.32);
+}
+
+.phone-screen {
+    min-height: min(850px, calc(100dvh - 2.5rem));
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    background: linear-gradient(180deg, #edf4fa 0%, #f8fcff 100%);
+    border-radius: 30px;
+    overflow: hidden;
+    animation: screen-in 320ms ease-out;
+}
+
+.app-header {
+    padding: 1rem 1rem 0.8rem;
+}
+
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.state-pill {
+    background: var(--teal-soft);
+    color: #0b6b5f;
+    border-radius: 999px;
+    padding: 0.24rem 0.58rem;
+}
+
+.brand-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.logo {
+    width: 58px;
+    height: 58px;
+    border-radius: 15px;
+    object-fit: cover;
+    box-shadow: 0 10px 18px rgba(15, 35, 44, 0.16);
+}
+
+.overline {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.14em;
+}
+
+h1,
+h2 {
+    margin: 0;
+    font-family: "Baloo 2", "Trebuchet MS", sans-serif;
+    line-height: 1;
+}
+
+h1 {
+    font-size: 1.95rem;
+}
+
+.app-main {
+    overflow: auto;
+    padding: 0.2rem 1rem 1rem;
+    display: grid;
+    gap: 0.8rem;
+}
+
+/* Primary action card users see first when opening the app. */
+.hero-card {
+    background: linear-gradient(165deg, var(--orange) 0%, var(--orange-deep) 100%);
+    color: #fff;
+    border-radius: 22px;
+    padding: 1rem;
+    box-shadow: 0 18px 28px rgba(182, 99, 26, 0.28);
+}
+
+.hero-kicker {
+    margin: 0;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.9;
+}
+
+.hero-card h2 {
+    margin-top: 0.32rem;
+    font-size: 1.5rem;
+    line-height: 1.03;
+}
+
+.hero-copy {
+    margin: 0.42rem 0 0.82rem;
+    font-size: 0.92rem;
+    opacity: 0.94;
+}
+
+.primary-btn {
+    width: 100%;
+    border: 0;
+    border-radius: 14px;
+    padding: 0.8rem 0.9rem;
+    font-size: 0.97rem;
+    font-weight: 700;
+    color: var(--orange-deep);
+    background: #fff;
+    cursor: pointer;
+    transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.primary-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 18px rgba(255, 255, 255, 0.28);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.62rem;
+}
+
+.stat-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 0.75rem;
+    animation: rise 420ms ease both;
+}
+
+.stat-card:nth-child(2) {
+    animation-delay: 70ms;
+}
+
+.stat-card:nth-child(3) {
+    animation-delay: 130ms;
+}
+
+.stat-card:nth-child(4) {
+    animation-delay: 190ms;
+}
+
+.label {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.value {
+    margin: 0.25rem 0 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.photo-reel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.62rem;
+}
+
+.photo-reel img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 14px;
+    box-shadow: 0 12px 22px rgba(20, 33, 39, 0.18);
+}
+
+.map-panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 0.68rem;
+}
+
+.panel-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.panel-row h2 {
+    font-size: 1.22rem;
+    color: #174b58;
+}
+
+.live-indicator {
+    font-size: 0.73rem;
+    font-weight: 700;
+    color: #0a5f55;
+    background: var(--teal-soft);
+    border-radius: 999px;
+    padding: 0.2rem 0.56rem;
+}
+
+#map {
+    width: 100%;
+    height: 195px;
+    border-radius: 12px;
+}
+
+.tab-bar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+    background: rgba(246, 251, 254, 0.94);
+    border-top: 1px solid var(--line);
+    padding: 0.7rem 0.9rem 0.9rem;
+}
+
+.tab {
+    border: 1px solid var(--line);
+    background: #fff;
+    color: #6a7680;
+    border-radius: 12px;
+    padding: 0.52rem 0.4rem;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.tab.is-active {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(170deg, var(--teal) 0%, #138f9d 100%);
+}
+
+/* Visual feedback when a walk is currently active. */
+body.walking .state-pill {
+    color: #fff;
+    background: linear-gradient(170deg, var(--teal) 0%, #138f9d 100%);
+}
+
+body.walking .live-indicator {
+    color: #fff;
+    background: linear-gradient(170deg, var(--teal) 0%, #138f9d 100%);
+}
+
+@keyframes screen-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes rise {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 520px) {
+    body {
+        padding: 0;
+    }
+
+    .app-shell {
+        width: 100%;
+        height: 100dvh;
+    }
+
+    .phone-frame {
+        height: 100%;
+        border-radius: 0;
+        padding: 0;
+    }
+
+    .phone-screen {
+        min-height: 100dvh;
+        border-radius: 0;
+    }
+}
