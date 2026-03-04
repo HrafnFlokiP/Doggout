@@ -26,13 +26,16 @@ const AVATAR_CATALOG = [
 class GpsDistanceTracker {
     constructor(options = {}) {
         this.earthRadiusMeters = 6371000;
-        this.maxAcceptedAccuracy = options.maxAcceptedAccuracy ?? 20;
-        this.minDistanceStepMeters = options.minDistanceStepMeters ?? 5;
+        this.maxAcceptedAccuracy = options.maxAcceptedAccuracy ?? 12;
+        this.minDistanceStepMeters = options.minDistanceStepMeters ?? 10;
+        this.maxWalkingSpeedMps = options.maxWalkingSpeedMps ?? 3.5;
+        this.requiredConsecutiveMoves = options.requiredConsecutiveMoves ?? 3;
         this.totalMeters = 0;
         this.previousAccepted = null;
         this.watchId = null;
         this.onUpdate = null;
         this.onError = null;
+        this.consecutiveMoveCandidates = 0;
     }
 
     start(onUpdate, onError) {
@@ -75,6 +78,7 @@ class GpsDistanceTracker {
     reset() {
         this.totalMeters = 0;
         this.previousAccepted = null;
+        this.consecutiveMoveCandidates = 0;
     }
 
     processPosition(position) {
@@ -88,7 +92,7 @@ class GpsDistanceTracker {
         const currentPoint = { latitude, longitude };
 
         if (!this.previousAccepted) {
-            this.previousAccepted = currentPoint;
+            this.previousAccepted = { ...currentPoint, timestamp: position.timestamp };
             this.emitUpdate(position, this.totalMeters);
             return;
         }
@@ -100,13 +104,37 @@ class GpsDistanceTracker {
             currentPoint.longitude
         );
 
+        const elapsedSeconds = Math.max(
+            0,
+            (position.timestamp - (this.previousAccepted.timestamp ?? position.timestamp)) / 1000
+        );
+        const speedMps = elapsedSeconds > 0 ? stepMeters / elapsedSeconds : 0;
+
+        // Ignore impossible jumps/spikes from GPS.
+        if (speedMps > this.maxWalkingSpeedMps) {
+            this.consecutiveMoveCandidates = 0;
+            return;
+        }
+
+        // Dynamic step threshold based on reported sample accuracy.
+        const dynamicMinStep = Math.max(this.minDistanceStepMeters, accuracy * 0.6);
+
         // Ignore micro-jumps caused by GPS jitter.
-        if (stepMeters < this.minDistanceStepMeters) {
+        if (stepMeters < dynamicMinStep) {
+            this.consecutiveMoveCandidates = 0;
+            this.previousAccepted = { ...currentPoint, timestamp: position.timestamp };
+            return;
+        }
+
+        // Require multiple significant samples before counting movement.
+        this.consecutiveMoveCandidates += 1;
+        if (this.consecutiveMoveCandidates < this.requiredConsecutiveMoves) {
+            this.previousAccepted = { ...currentPoint, timestamp: position.timestamp };
             return;
         }
 
         this.totalMeters += stepMeters;
-        this.previousAccepted = currentPoint;
+        this.previousAccepted = { ...currentPoint, timestamp: position.timestamp };
         this.emitUpdate(position, this.totalMeters);
     }
 
@@ -217,8 +245,10 @@ let activeGoalSlotOne = null;
 let activeGoalSlotTwo = null;
 let coarsePointerQuery = null;
 const gpsTracker = new GpsDistanceTracker({
-    maxAcceptedAccuracy: 20,
-    minDistanceStepMeters: 5
+    maxAcceptedAccuracy: 12,
+    minDistanceStepMeters: 10,
+    maxWalkingSpeedMps: 3.5,
+    requiredConsecutiveMoves: 3
 });
 
 init();
