@@ -19,6 +19,134 @@ const AVATAR_CATALOG = [
     { id: "afghan_hound", name: "Afghan Hound", cost: 300, src: "assets/Afghan_Hound.png" },
 ];
 
+/**
+ * GPS distance tracker using watchPosition + Haversine.
+ * Designed to be reusable and to filter noisy readings.
+ */
+class GpsDistanceTracker {
+    constructor(options = {}) {
+        this.earthRadiusMeters = 6371000;
+        this.maxAcceptedAccuracy = options.maxAcceptedAccuracy ?? 20;
+        this.minDistanceStepMeters = options.minDistanceStepMeters ?? 5;
+        this.totalMeters = 0;
+        this.previousAccepted = null;
+        this.watchId = null;
+        this.onUpdate = null;
+        this.onError = null;
+    }
+
+    start(onUpdate, onError) {
+        if (!navigator.geolocation) {
+            if (onError) {
+                onError(new Error("Geolocation is not supported by this browser."));
+            }
+            return false;
+        }
+
+        if (!window.isSecureContext) {
+            if (onError) {
+                onError(new Error("Geolocation requires HTTPS (or localhost)."));
+            }
+            return false;
+        }
+
+        this.onUpdate = onUpdate;
+        this.onError = onError;
+
+        this.watchId = navigator.geolocation.watchPosition(
+            (position) => this.processPosition(position),
+            (error) => this.handleWatchError(error),
+            {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 15000
+            }
+        );
+        return true;
+    }
+
+    stop() {
+        if (typeof this.watchId === "number") {
+            navigator.geolocation.clearWatch(this.watchId);
+            this.watchId = null;
+        }
+    }
+
+    reset() {
+        this.totalMeters = 0;
+        this.previousAccepted = null;
+    }
+
+    processPosition(position) {
+        const { latitude, longitude, accuracy } = position.coords;
+
+        // Ignore low-quality GPS samples.
+        if (!Number.isFinite(accuracy) || accuracy > this.maxAcceptedAccuracy) {
+            return;
+        }
+
+        const currentPoint = { latitude, longitude };
+
+        if (!this.previousAccepted) {
+            this.previousAccepted = currentPoint;
+            this.emitUpdate(position, this.totalMeters);
+            return;
+        }
+
+        const stepMeters = this.calculateHaversineDistance(
+            this.previousAccepted.latitude,
+            this.previousAccepted.longitude,
+            currentPoint.latitude,
+            currentPoint.longitude
+        );
+
+        // Ignore micro-jumps caused by GPS jitter.
+        if (stepMeters < this.minDistanceStepMeters) {
+            return;
+        }
+
+        this.totalMeters += stepMeters;
+        this.previousAccepted = currentPoint;
+        this.emitUpdate(position, this.totalMeters);
+    }
+
+    emitUpdate(position, totalMeters) {
+        if (this.onUpdate) {
+            this.onUpdate({
+                position,
+                totalMeters
+            });
+        }
+    }
+
+    handleWatchError(error) {
+        if (this.onError) {
+            this.onError(error);
+        }
+    }
+
+    calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+        const dLat = this.degreesToRadians(lat2 - lat1);
+        const dLon = this.degreesToRadians(lon2 - lon1);
+        const radLat1 = this.degreesToRadians(lat1);
+        const radLat2 = this.degreesToRadians(lat2);
+
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(radLat1) *
+                Math.cos(radLat2) *
+                Math.sin(dLon / 2) *
+                Math.sin(dLon / 2);
+
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return this.earthRadiusMeters * c;
+    }
+
+    degreesToRadians(degrees) {
+        return degrees * (Math.PI / 180);
+    }
+}
+
 function createDefaultState() {
     return {
         bagCount: 12,
@@ -38,7 +166,7 @@ const ui = {
     brandLogo: document.getElementById("brandLogo"),
     lastWalkValue: document.getElementById("lastWalkValue"),
     durationValue: document.getElementById("durationValue"),
-    distanceValue: document.getElementById("distanceValue"),
+    distanceValue: document.getElementById("distance"),
     poopStatusValue: document.getElementById("poopStatusValue"),
     pointsValue: document.getElementById("pointsValue"),
     bagsValue: document.getElementById("bagsValue"),
@@ -88,6 +216,10 @@ let activeTab = "walk";
 let activeGoalSlotOne = null;
 let activeGoalSlotTwo = null;
 let coarsePointerQuery = null;
+const gpsTracker = new GpsDistanceTracker({
+    maxAcceptedAccuracy: 20,
+    minDistanceStepMeters: 5
+});
 
 init();
 
@@ -215,11 +347,6 @@ function initMap() {
 }
 
 function startWalk() {
-    if (!navigator.geolocation) {
-        alert("GPS is not supported by this browser.");
-        return;
-    }
-
     const hasBag = confirm("Did you remember a poop bag?");
     if (!hasBag) {
         alert("Walk not started. Grab a bag first.");
@@ -242,15 +369,11 @@ function startWalk() {
         currentMarker = null;
     }
 
-    walkSession.watchId = navigator.geolocation.watchPosition(
-        handlePositionUpdate,
-        handlePositionError,
-        {
-            enableHighAccuracy: true,
-            maximumAge: 0,
-            timeout: 15000
-        }
-    );
+    gpsTracker.reset();
+    const started = gpsTracker.start(handleGpsUpdate, handleGpsError);
+    if (!started) {
+        return;
+    }
 
     walkSession.timerId = setInterval(() => {
         walkSession.durationMs = Date.now() - walkSession.startedAt;
@@ -281,10 +404,7 @@ function stopWalk() {
         walkSession.timerId = null;
     }
 
-    if (typeof walkSession.watchId === "number") {
-        navigator.geolocation.clearWatch(walkSession.watchId);
-        walkSession.watchId = null;
-    }
+    gpsTracker.stop();
 
     const didPoop = confirm("Did your dog poop on this walk?");
 
@@ -337,10 +457,7 @@ function cancelWalk(reason) {
         walkSession.timerId = null;
     }
 
-    if (typeof walkSession.watchId === "number") {
-        navigator.geolocation.clearWatch(walkSession.watchId);
-        walkSession.watchId = null;
-    }
+    gpsTracker.stop();
 
     setText(ui.walkState, "Ready");
     setText(ui.walkToggle, "Start Walk");
@@ -350,23 +467,11 @@ function cancelWalk(reason) {
     setText(ui.sessionSummary, reason);
 }
 
-function handlePositionUpdate(position) {
-    const lat = position.coords.latitude;
-    const lng = position.coords.longitude;
+function handleGpsUpdate(sample) {
+    const lat = sample.position.coords.latitude;
+    const lng = sample.position.coords.longitude;
     const current = [lat, lng];
-
-    if (walkSession.lastPosition) {
-        const segment = haversineMeters(
-            walkSession.lastPosition[0],
-            walkSession.lastPosition[1],
-            lat,
-            lng
-        );
-
-        if (segment < 120) {
-            walkSession.distanceM += segment;
-        }
-    }
+    walkSession.distanceM = sample.totalMeters;
 
     walkSession.lastPosition = current;
     walkSession.route.push(current);
@@ -391,12 +496,15 @@ function handlePositionUpdate(position) {
     updateLiveSessionFields();
 }
 
-function handlePositionError(error) {
+function handleGpsError(error) {
+    const message = error && error.message ? error.message : String(error);
     setText(ui.liveIndicator, "GPS Error");
-    setText(ui.sessionSummary, `GPS issue: ${error.message}`);
+    setText(ui.sessionSummary, `GPS issue: ${message}`);
 
     if (walkSession.active && (error.code === 1 || error.code === 2)) {
         alert("GPS permission is required to track a walk.");
+        cancelWalk("Walk cancelled due to GPS issue.");
+    } else if (walkSession.active) {
         cancelWalk("Walk cancelled due to GPS issue.");
     }
 }
@@ -775,23 +883,6 @@ function calculateMood(points, didPoop, noPoopStreak) {
     return "Low";
 }
 
-function haversineMeters(lat1, lon1, lat2, lon2) {
-    const toRadians = (degrees) => degrees * (Math.PI / 180);
-    const earthRadiusM = 6371000;
-    const dLat = toRadians(lat2 - lat1);
-    const dLon = toRadians(lon2 - lon1);
-
-    const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRadians(lat1)) *
-            Math.cos(toRadians(lat2)) *
-            Math.sin(dLon / 2) *
-            Math.sin(dLon / 2);
-
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return earthRadiusM * c;
-}
-
 function formatDuration(milliseconds) {
     const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
     const minutes = Math.floor(totalSeconds / 60);
@@ -800,10 +891,7 @@ function formatDuration(milliseconds) {
 }
 
 function formatDistance(meters) {
-    if (meters < 1000) {
-        return `${Math.round(meters)} m`;
-    }
-    return `${(meters / 1000).toFixed(2)} km`;
+    return `${(Math.max(0, meters) / 1000).toFixed(2)} km`;
 }
 
 function setText(element, value) {
